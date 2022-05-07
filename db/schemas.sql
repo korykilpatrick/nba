@@ -68,12 +68,13 @@ create table player_adjustments (
 drop table if exists games;
 create table games (
   season_id varchar(30),
-  game_id int unsigned primary key,
+  game_id varchar(30) primary key,
     game_date datetime not null,
     home_team varchar(3) not null,
     away_team varchar(3) not null,
     home_score int unsigned,
-    away_score int unsigned
+    away_score int unsigned,
+    create_date datetime default now()
 );
 
 create table shot_luck_snapshot (
