@@ -1,4 +1,5 @@
 from termcolor import cprint
+from datetime import datetime
 
 def insert_records(dal, tablename, records, ret=False, ignore=False, print_res=True, color='green'):
 	if not records:
@@ -31,3 +32,7 @@ def clean_shooting_figs(fgm, fga, fg2m, fg2a, fg3m, fg3a, ftm, fta):
 	ft_pct = round(ftm / fta, 2) if fta else 0
 
 	return fgm, fga, fg_pct, fg2m, fg2a, fg2_pct, fg3m, fg3a, fg3_pct, ftm, fta, ft_pct
+
+def convert_datetime_to_str(dt):
+	# nba_api's formatting
+	return dt.strftime("%Y/%m/%d")

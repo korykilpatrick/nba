@@ -1,8 +1,9 @@
 from nba_api.stats.endpoints import leaguegamelog
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 from nba.db.models import Game
-from nba.utils import insert_records
+from nba.utils import insert_records, convert_datetime_to_str
 from nba import dal
 
 def get_game_ids(direction='DESC', season='Playoffs', date_from=None, date_to=None):
@@ -19,13 +20,14 @@ def get_game_ids(direction='DESC', season='Playoffs', date_from=None, date_to=No
 
 	return list(game_ids)
 
-def seed_games(target_season=None):
+def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.now() - timedelta(days=1)), date_to=convert_datetime_to_str(datetime.now() + timedelta(days=1))):
 	game_ids = set()
 	records = []
 	game_lookup = defaultdict(lambda : defaultdict()) # {game_lookup[game_id]['home_team'] = 'MEM'}
+	saved_records = {g.game_id: g._asdict() for g in dal.execute('select * from games')}
 	for season in ['Regular Season', 'Playoffs']:
 		if target_season and season.lower() != target_season.lower(): continue
-		games = leaguegamelog.LeagueGameLog(season_type_all_star=season).get_dict()
+		games = leaguegamelog.LeagueGameLog(season_type_all_star=season, date_from_nullable=date_from, date_to_nullable=date_to).get_dict()
 		for r in games['resultSets'][0]['rowSet']:
 			game_id = r[4]
 			game_lookup[game_id]['season_id'] = r[0]
@@ -63,6 +65,19 @@ def seed_games(target_season=None):
 		if not game_data['home_team'] or not game_data['away_team']:
 			print('DONT HAVE BOTH TEAMS', game_id, game_data)
 			continue
+		elif game_id in saved_records:
+			if game_data['home_team'] == saved_records[game_id]['home_team'] and game_data['away_team'] == saved_records[game_id]['away_team']:
+				if game_data['home_score'] == saved_records[game_id]['home_score']and game_data['away_score'] == saved_records[game_id]['away_score']:
+					# already have this record
+					continue
+				else:
+					cprint(f"Old score: {saved_records[game_id]}\nNew score: {game_data}", 'yellow')
+					# if we see a new score, assume its correct
+					dal.execute('update games set home_score=%s, away_score=%s where game_id=%s', (game_data['home_score'], game_data['away_score'], game_id,))
+			else:
+				raise(f'We got problems: {saved_records[game_id]}\n{game_data}')
+
+
 		records.append(Game(game_data['season_id'], game_id, game_data['game_date'], game_data['home_team'], game_data['away_team'], game_data['home_score'], game_data['away_score']))
 	insert_records(dal, 'games', records, ignore=False)
 
@@ -73,4 +88,5 @@ def seed_games(target_season=None):
 if __name__ == '__main__':
 	# game_ids = get_game_ids(date_from='2022-05-03')
 	# print(game_ids)
-	seed_games(target_season='playoffs')
+	date_from = convert_datetime_to_str(datetime.now() - timedelta(days=3))
+	seed_games(target_season='playoffs', date_from=date_from)

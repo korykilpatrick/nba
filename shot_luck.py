@@ -26,8 +26,10 @@ def calculate_shot_luck_score(box_dict, home_team, print_players=True):
 					ft_avg = float(base_rates.ft_pct)
 					two_avg = float(base_rates.fg2_pct)
 					three_avg = float(base_rates.fg3_pct)
+					if team == home_team: three_avg += .01
+					else: three_avg -= .01
 				except Exception as e:
-					continue
+					# continue
 					cprint(f"Couldnt get base rates for {name}: {e}", 'yellow')
 					# if input('do you want to skip this bro? (y/n)').lower() == 'y':
 						# continue
