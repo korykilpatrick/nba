@@ -15,13 +15,13 @@ def live_main():
 	games = get_live_games()
 	while True:
 		for game_id, game_code in games:
-			if 'mil' not in game_code.lower(): continue
+			if 'phi' not in game_code.lower(): continue
 			try:
 				box = get_live_boxscore(game_id)
 				home_team, home_score = box['homeTeam']['teamTricode'], box['homeTeam']['score']
 				away_team, away_score = box['awayTeam']['teamTricode'], box['awayTeam']['score']
 				box_dict = parse_live_boxscore(box)
-				home_score_ev, away_score_ev = calculate_shot_luck_score(box_dict, home_team, print_players=False)
+				home_score_ev, away_score_ev = calculate_shot_luck_score(box_dict, home_team, print_players=True)
 				cprint(f"Score:    {home_team} {home_score} {away_team} {away_score}", 'cyan')
 				cprint(f"Score EV: {home_team} {home_score_ev} {away_team} {away_score_ev}\n", 'magenta')
 			except Exception as e:
@@ -29,9 +29,9 @@ def live_main():
 		time.sleep(10)
 
 def shot_luck_lookback():
-	games = dal.execute('select * from games where game_date > now() - interval 1 week order by game_date')
+	games = dal.execute('select * from games where game_date > current_date - interval 2 day order by game_date')
 	for game in games:
-		# if game.home_team != 'MEM': continue
+		# if game.home_team not in ['MEM', 'MIN']: continue
 		box = get_boxscore_traditional(game.game_id)
 		box_dict = parse_boxscore_traditional(box)
 		home_score_ev, away_score_ev = calculate_shot_luck_score(box_dict, game.home_team, print_players=False)
@@ -41,6 +41,6 @@ def shot_luck_lookback():
 		print('\n')
 
 if __name__ == '__main__':
-	live_main()
-	# shot_luck_lookback()
+	# live_main()
+	shot_luck_lookback()
 
