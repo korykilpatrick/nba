@@ -3,7 +3,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from nba.db.models import Game
-from nba.utils import insert_records, convert_datetime_to_str
+import nba.utils as utils
 from nba import dal
 
 def get_game_ids(direction='DESC', season='Playoffs', date_from=None, date_to=None):
@@ -20,15 +20,17 @@ def get_game_ids(direction='DESC', season='Playoffs', date_from=None, date_to=No
 
 	return list(game_ids)
 
-def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.now() - timedelta(days=1)), date_to=convert_datetime_to_str(datetime.now() + timedelta(days=1))):
+def seed_games(season=None, season_type=None, date_from=utils.convert_datetime_to_str(datetime.now() - timedelta(days=1)), date_to=utils.convert_datetime_to_str(datetime.now() + timedelta(days=1))):
 	game_ids = set()
 	records = []
 	game_lookup = defaultdict(lambda : defaultdict()) # {game_lookup[game_id]['home_team'] = 'MEM'}
 	saved_records = {g.game_id: g._asdict() for g in dal.execute('select * from games')}
-	for season in ['Regular Season', 'Playoffs']:
-		if target_season and season.lower() != target_season.lower(): continue
-		games = leaguegamelog.LeagueGameLog(season_type_all_star=season, date_from_nullable=date_from, date_to_nullable=date_to).get_dict()
-		for r in games['resultSets'][0]['rowSet']:
+	for season_t in ['Regular Season', 'Playoffs']:
+		# if season_type and season_t.lower() != season_type.lower(): continue
+		games = leaguegamelog.LeagueGameLog(season=season, season_type_all_star=season_t).get_dict()
+		row_set = games['resultSets'][0]['rowSet']
+		# if season_t == 'Playoffs':
+		for r in row_set:
 			game_id = r[4]
 			game_lookup[game_id]['season_id'] = r[0]
 			team_name = r[2]
@@ -38,10 +40,9 @@ def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.no
 			game_lookup[game_id]['home_score' if is_home else 'away_score'] = r[-3]
 
 		# THIS COMMENTED CODE WORKED FOR REG SEASON BUT NOT PLAYOFFS???
-		# for i in range(0, len(games['resultSets'][0]['rowSet']), 2):
+		# for i in range(0, len(row_set), 2):
 		# 	home_team = away_team = home_score = away_score = None
-		# 	t1_data = games['resultSets'][0]['rowSet'][i]
-		# 	t2_data = games['resultSets'][0]['rowSet'][i+1]
+		# 	t1_data, t2_data = row_set[i:i+2]
 		# 	print(t1_data, '\n', t2_data)
 		# 	game_id = t1_data[4]
 		# 	if t1_data[4] != t2_data[4]:
@@ -52,7 +53,7 @@ def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.no
 		# 	# 	print(t1_data, t2_data)
 		# 	# else:
 		# 	# 	game_ids.append(game_id)
-		# 	if dal.execute('select * from games where game_id=%s', (game_id,)): continue
+		# 	# if dal.execute('select * from games where game_id=%s', (game_id,)): continue
 		# 	t1_is_home = 'vs' in t1_data[6]
 		# 	home_team = t1_data[2] if t1_is_home else t2_data[2]
 		# 	home_score = t1_data[-3] if t1_is_home else t2_data[-3]
@@ -60,7 +61,7 @@ def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.no
 		# 	away_score = t2_data[-3] if t1_is_home else t1_data[-3]
 
 			# records.append(Game(t1_data[0], game_id, t1_data[5], home_team, away_team, home_score, away_score))
-	# insert_records(dal, 'games', records, ignore=False)
+	# utils.insert_records(dal, 'games', records, ignore=False)
 	for game_id, game_data in game_lookup.items():
 		if not game_data['home_team'] or not game_data['away_team']:
 			print('DONT HAVE BOTH TEAMS', game_id, game_data)
@@ -79,7 +80,7 @@ def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.no
 
 
 		records.append(Game(game_data['season_id'], game_id, game_data['game_date'], game_data['home_team'], game_data['away_team'], game_data['home_score'], game_data['away_score']))
-	insert_records(dal, 'games', records, ignore=False)
+	utils.insert_records(dal, 'games', records, ignore=False)
 
 
 
@@ -88,5 +89,6 @@ def seed_games(target_season=None, date_from=convert_datetime_to_str(datetime.no
 if __name__ == '__main__':
 	# game_ids = get_game_ids(date_from='2022-05-03')
 	# print(game_ids)
-	date_from = convert_datetime_to_str(datetime.now() - timedelta(days=3))
-	seed_games(target_season='playoffs', date_from=date_from)
+	# date_from = utils.convert_datetime_to_str(datetime.now() - timedelta(days=3))
+	for i in range(2021, 2022):
+		seed_games(season=utils.get_season_str(i))

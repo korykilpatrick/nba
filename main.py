@@ -29,7 +29,7 @@ def live_main():
 		time.sleep(10)
 
 def shot_luck_lookback():
-	games = dal.execute('select * from games where game_date > current_date - interval 2 day order by game_date')
+	games = dal.execute('select * from games where game_date > current_date - interval 3 day order by game_date')
 	for game in games:
 		# if game.home_team not in ['MEM', 'MIN']: continue
 		box = get_boxscore_traditional(game.game_id)

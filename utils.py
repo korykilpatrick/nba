@@ -1,5 +1,6 @@
 from termcolor import cprint
 from datetime import datetime
+from collections import namedtuple
 
 def insert_records(dal, tablename, records, ret=False, ignore=False, print_res=True, color='green'):
 	if not records:
@@ -36,3 +37,15 @@ def clean_shooting_figs(fgm, fga, fg2m, fg2a, fg3m, fg3a, ftm, fta):
 def convert_datetime_to_str(dt):
 	# nba_api's formatting
 	return dt.strftime("%Y/%m/%d")
+
+def get_data(cls, **kwargs):
+	data = cls(**kwargs)
+	data_dict, res = data.get_dict(), []
+
+	for result_set in data_dict['resultSets']:
+		RowData = namedtuple(result_set['name'], [h.lower() for h in result_set['headers']])
+		res.append([RowData(*row_data) for row_data in result_set['rowSet']])
+	return res
+
+def get_season_str(year):
+	return f"{year}-{str(int(year+1))[2:]}"
